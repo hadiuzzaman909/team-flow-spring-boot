@@ -26,7 +26,6 @@ class TaskControllerTest {
 
     @Test
     void testGetAllTasks() throws Exception {
-        // Mock data
         TaskResponse task1 = new TaskResponse();
         task1.setId(1L);
         task1.setTitle("Task 1");
@@ -41,7 +40,6 @@ class TaskControllerTest {
 
         when(taskService.getAllTasks()).thenReturn(Arrays.asList(task1, task2));
 
-        // Call the API
         mockMvc.perform(get("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -52,7 +50,6 @@ class TaskControllerTest {
 
     @Test
     void testCreateTask() throws Exception {
-        // Mock data
         TaskRequest taskRequest = new TaskRequest();
         taskRequest.setTitle("New Task");
         taskRequest.setDescription("New Description");
@@ -66,7 +63,6 @@ class TaskControllerTest {
 
         when(taskService.createTask(any(TaskRequest.class))).thenReturn(taskResponse);
 
-        // Call the API
         mockMvc.perform(post("/api/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"New Task\",\"description\":\"New Description\",\"status\":\"TO_DO\"}"))
