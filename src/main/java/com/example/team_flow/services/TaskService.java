@@ -12,6 +12,11 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+
 
 @Service
 public class TaskService {
@@ -26,10 +31,40 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
+    public Page<TaskResponse> getPaginatedTasks(String searchQuery, String columnName, String order, int page, int size) {
+        Sort sort = order.equalsIgnoreCase("desc")
+                ? Sort.by(columnName).descending()
+                : Sort.by(columnName).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Task> taskPage = (searchQuery != null && !searchQuery.isEmpty())
+                ? taskRepository.findByTitleContainingIgnoreCase(searchQuery, pageable)
+                : taskRepository.findAll(pageable);
+
+        return taskPage.map(this::convertToResponse);
+    }
+
     public TaskResponse getTaskById(Long id) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new TaskNotFoundException("Task with ID " + id + " not found."));
         return convertToResponse(task);
+    }
+
+    public List<TaskResponse> createTasks(List<TaskRequest> taskRequests) {
+        List<Task> tasks = taskRequests.stream().map(request -> {
+            Task task = new Task();
+            task.setTitle(request.getTitle());
+            task.setDescription(request.getDescription());
+            task.setStatus(request.getStatus());
+            task.setCreatedAt(LocalDateTime.now());
+            task.setUpdatedAt(LocalDateTime.now());
+            return task;
+        }).collect(Collectors.toList());
+
+        List<Task> savedTasks = taskRepository.saveAll(tasks);
+
+        return savedTasks.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
 
     public TaskResponse createTask(TaskRequest taskRequest) {

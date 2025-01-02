@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -69,7 +71,6 @@ class TaskServiceTest {
         taskRequest.setDescription("New Description");
         taskRequest.setStatus("TO_DO");
 
-        Task task = new Task(null, "New Task", "New Description", "TO_DO", null, null);
         Task savedTask = new Task(1L, "New Task", "New Description", "TO_DO", null, null);
 
         when(taskRepository.save(any(Task.class))).thenReturn(savedTask);
@@ -80,4 +81,70 @@ class TaskServiceTest {
         assertEquals(1L, response.getId());
         assertEquals("New Task", response.getTitle());
     }
+
+    @Test
+    void testUpdateTask_Success() {
+
+        Long taskId = 1L;
+        TaskRequest taskRequest = new TaskRequest();
+        taskRequest.setTitle("Updated Task");
+        taskRequest.setDescription("Updated Description");
+        taskRequest.setStatus("IN_PROGRESS");
+
+        Task existingTask = new Task(1L, "Old Task", "Old Description", "TO_DO", null, null);
+        Task updatedTask = new Task(1L, "Updated Task", "Updated Description", "IN_PROGRESS", null, LocalDateTime.now());
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
+        when(taskRepository.save(existingTask)).thenReturn(updatedTask);
+
+        TaskResponse response = taskService.updateTask(taskId, taskRequest);
+
+        assertNotNull(response);
+        assertEquals("Updated Task", response.getTitle());
+        assertEquals("Updated Description", response.getDescription());
+        assertEquals("IN_PROGRESS", response.getStatus());
+        verify(taskRepository, times(1)).findById(taskId);
+        verify(taskRepository, times(1)).save(existingTask);
+    }
+
+    @Test
+    void testUpdateTask_NotFound() {
+        Long taskId = 1L;
+        TaskRequest taskRequest = new TaskRequest();
+        taskRequest.setTitle("Updated Task");
+        taskRequest.setDescription("Updated Description");
+        taskRequest.setStatus("IN_PROGRESS");
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
+
+        assertThrows(TaskNotFoundException.class, () -> taskService.updateTask(taskId, taskRequest));
+        verify(taskRepository, times(1)).findById(taskId);
+        verify(taskRepository, never()).save(any(Task.class));
+    }
+
+    @Test
+    void testDeleteTask_Success() {
+        Long taskId = 1L;
+        Task existingTask = new Task(1L, "Task to Delete", "Description", "TO_DO", null, null);
+
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(existingTask));
+        doNothing().when(taskRepository).deleteById(taskId);
+
+        taskService.deleteTask(taskId);
+
+        verify(taskRepository, times(1)).findById(taskId);
+        verify(taskRepository, times(1)).deleteById(taskId);
+    }
+
+    @Test
+    void testDeleteTask_NotFound() {
+        Long taskId = 1L;
+        when(taskRepository.findById(taskId)).thenReturn(Optional.empty());
+
+        assertThrows(TaskNotFoundException.class, () -> taskService.deleteTask(taskId));
+        verify(taskRepository, times(1)).findById(taskId);
+        verify(taskRepository, never()).deleteById(taskId);
+    }
+
+
 }
